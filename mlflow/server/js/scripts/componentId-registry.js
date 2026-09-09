@@ -556,6 +556,12 @@ module.exports = {
   "mlflow.artifacts.model_version.link": "",
   "mlflow.artifacts.model_version.status": "",
 
+  // -- mlflow.assessment-summary --
+  "mlflow.assessment-summary": "",
+  "mlflow.assessment-summary.close": "",
+  "mlflow.assessment-summary.copy": "",
+  "mlflow.assessment-summary.trigger": "",
+
   // -- mlflow.assistant --
   "mlflow.assistant.api_key_prompt.input": "",
   "mlflow.assistant.api_key_prompt.save": "",

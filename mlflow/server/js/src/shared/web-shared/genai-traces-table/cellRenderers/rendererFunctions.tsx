@@ -26,6 +26,7 @@ import { GenAITracesTableContext } from '../GenAITracesTableContext';
 
 import { ExecutionDurationTag } from './ExecutionDurationTag';
 import { IssuesCell } from './IssuesCell';
+import { AssessmentSummary } from './AssessmentSummary';
 import { LoggedModelCell } from './LoggedModelCell';
 import { NullCell } from './NullCell';
 import { RunName } from './RunName';
@@ -44,6 +45,7 @@ import {
   getEvaluationResultAssessmentValue,
   getEvaluationResultInputTitle,
   KnownEvaluationResultAssessmentStringValue,
+  KnownEvaluationResultAssessmentName,
   stringifyValue,
 } from '../components/GenAiEvaluationTracesReview.utils';
 import { RunColorCircle } from '../components/RunColorCircle';
@@ -199,6 +201,21 @@ export const assessmentCellRenderer = (
       <div css={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
         {badge(comparisonEntry.currentRunValue)}
         {isComparing && badge(comparisonEntry.otherRunValue)}
+      </div>
+    );
+  }
+
+  if (assessmentName === KnownEvaluationResultAssessmentName.CORRECTNESS) {
+    return (
+      <div css={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
+        {[comparisonEntry.currentRunValue, ...(isComparing ? [comparisonEntry.otherRunValue] : [])].map(
+          (run, index) => {
+            const assessment = first(run?.responseAssessmentsByName[assessmentName]);
+            return run && assessment ? (
+              <AssessmentSummary key={index} run={run} assessment={assessment} assessmentInfo={assessmentInfo} />
+            ) : null;
+          },
+        )}
       </div>
     );
   }

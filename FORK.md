@@ -2,7 +2,7 @@
 
 This fork carries generic evaluation-table fixes on upstream MLflow v3.16.0. The maintained branch is `trace-ui-v3.16.0`; upstream history and tags are preserved. Application instrumentation, datasets, scorers and shared column preferences belong in the HoneyLabs repository.
 
-The UI removes the ten-column cap, defaults to ungrouped traces with IDs hidden, places numeric metrics before Correctness and individual checks, preserves boolean badges, and leaves unscored cells empty. Embedded run-table headers still require assessment metadata to exist.
+The UI removes the ten-column cap, defaults to ungrouped traces with IDs hidden, places numeric metrics before Correctness and individual checks, preserves boolean badges, and leaves unscored cells empty. Embedded run-table headers still require assessment metadata to exist. Hovering Correctness summarizes the trace's recorded scorer results, with failures and errors first; clicking keeps the summary open for selection and copying. The summary does not recalculate the overall grade or infer pass/fail from numeric metrics.
 
 The experiment tag `mlflow.ui.evaluationRuns.defaultColumns` accepts an ordered JSON array of native column IDs, such as `["run_name", "param.model", "param.reasoning", "metric.latency/mean"]`. It controls the Evaluation runs list, including columns whose values have not arrived yet. Run selection and name remain available; other columns stay in the picker. Choices survive data refresh; browser reload reapplies the shared default. Missing or malformed configuration uses upstream defaults. HoneyLabs owns its selected field names in catalog synchronization.
 

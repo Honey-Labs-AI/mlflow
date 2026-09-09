@@ -1327,6 +1327,10 @@
     "defaultMessage": "This tab displays all the traces logged to this logged model. MLflow supports automatic tracing for many popular generative AI frameworks. Follow the steps below to log your first trace. For more information about MLflow Tracing, visit the <a>MLflow documentation</a>.",
     "description": "Message that explains the function of the 'Traces' tab in logged model page. This message is followed by a tutorial explaining how to get started with MLflow Tracing."
   },
+  "3XfX5d": {
+    "defaultMessage": "Error",
+    "description": "Scorer error in assessment summary"
+  },
   "3YddwH": {
     "defaultMessage": "Traffic split percentages must total 100%",
     "description": "Tooltip shown when save button is disabled due to invalid traffic split total"
@@ -8303,6 +8307,10 @@
     "defaultMessage": "Enable Usage Tracking in the Overview tab to view usage metrics",
     "description": "Tooltip shown on disabled Usage tab explaining that usage tracking must be enabled first"
   },
+  "VoyNhQ": {
+    "defaultMessage": "Click to keep open. Escape or click outside to close.",
+    "description": "Assessment summary interaction hint"
+  },
   "VpFZR/": {
     "defaultMessage": "Cancel",
     "description": "A label for the cancel button in the delete prompt version modal"
@@ -8510,6 +8518,10 @@
   "WXbDNv": {
     "defaultMessage": "Tags",
     "description": "Header for the dataset record tags column"
+  },
+  "WYxFhe": {
+    "defaultMessage": "Passed",
+    "description": "Passed scorer in assessment summary"
   },
   "WZXP1G": {
     "defaultMessage": "Run name",
@@ -9678,6 +9690,10 @@
   "b7OpMB": {
     "defaultMessage": "Data Type",
     "description": "Field label for assessment data type in an edit form"
+  },
+  "b8RPY7": {
+    "defaultMessage": "Close",
+    "description": "Close assessment summary button"
   },
   "b9zfzK": {
     "defaultMessage": "Edit the request body below and click Send request to call the endpoint.",
@@ -11050,6 +11066,10 @@
   "gLj8lU": {
     "defaultMessage": "<strong>{length}</strong> matching {length, plural, =0 {runs} =1 {run} other {runs}}",
     "description": "Message for displaying how many runs match search criteria on experiment page"
+  },
+  "gLkw9L": {
+    "defaultMessage": "Show scorer summary",
+    "description": "Open assessment summary button label"
   },
   "gMX8Zp": {
     "defaultMessage": "MLflow assistant",
@@ -12495,6 +12515,10 @@
     "defaultMessage": "No matching data found for the available runs.",
     "description": "Experiment tracking > runs charts > parallel coordinates chart preview > no data found description"
   },
+  "lX8uST": {
+    "defaultMessage": "Failed",
+    "description": "Failed scorer in assessment summary"
+  },
   "lY4pBq": {
     "defaultMessage": "Delete \"{name}\"? This can't be undone.",
     "description": "Body of the confirmation dialog for deleting a saved experiment view"
@@ -13558,6 +13582,10 @@
   "puATD8": {
     "defaultMessage": "Are you sure you want to delete this assessment?",
     "description": "Delete assessments modal confirmation text"
+  },
+  "pvLMOu": {
+    "defaultMessage": "Not scored",
+    "description": "Missing scorer result in assessment summary"
   },
   "pvjUFP": {
     "defaultMessage": "e.g., gpt-5.2, claude-4.5-opus",

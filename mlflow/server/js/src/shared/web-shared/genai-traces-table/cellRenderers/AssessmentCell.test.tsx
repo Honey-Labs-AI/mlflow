@@ -1,5 +1,5 @@
 import { jest, describe, it, expect } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import { DesignSystemProvider } from '@databricks/design-system';
@@ -43,16 +43,24 @@ const renderCell = (
   evaluations: React.ComponentProps<typeof ModelTraceExplorerRunJudgesContextProvider>['evaluations'] = {},
   assessmentsByName: Record<string, any[]> = {},
   dtype: 'pass-fail' | 'boolean' | 'numeric' | 'string' = 'pass-fail',
+  otherAssessmentsByName?: Record<string, any[]>,
 ) => {
   const assessmentInfo = createTestAssessmentInfo(assessmentName, assessmentName, dtype);
   const comparisonEntry = makeComparisonEntry(traceId, assessmentsByName);
+  if (otherAssessmentsByName) {
+    comparisonEntry.otherRunValue = makeComparisonEntry('other-trace', otherAssessmentsByName).currentRunValue;
+  }
 
   return render(
     <IntlProvider locale="en">
       <DesignSystemProvider>
         <ModelTraceExplorerRunJudgesContextProvider evaluations={evaluations}>
           <GenAITracesTableContext.Provider value={{ isGroupedBySession: false } as any}>
-            <AssessmentCell isComparing={false} assessmentInfo={assessmentInfo} comparisonEntry={comparisonEntry} />
+            <AssessmentCell
+              isComparing={Boolean(otherAssessmentsByName)}
+              assessmentInfo={assessmentInfo}
+              comparisonEntry={comparisonEntry}
+            />
           </GenAITracesTableContext.Provider>
         </ModelTraceExplorerRunJudgesContextProvider>
       </DesignSystemProvider>
@@ -165,4 +173,102 @@ describe('AssessmentCell — absent assessments and value preservation', () => {
     renderCell(TRACE_ID, name, {}, { [name]: [assessment] }, dtype);
     expect(screen.getByText(expectedText)).toBeInTheDocument();
   });
+});
+
+describe('Correctness scorer summary', () => {
+  it('shows latest scorer failures, errors and missing results without treating numeric zero as failure', () => {
+    renderCell(
+      TRACE_ID,
+      'correctness',
+      {},
+      {
+        correctness: [{ name: 'correctness', booleanValue: false }],
+        answer: [{ name: 'answer', booleanValue: false, rationale: 'Missing total' }],
+        association: [{ name: 'association', stringValue: 'no', rationale: 'Missing pair' }],
+        latency: [{ name: 'latency', numericValue: 0 }],
+        pending: [{ name: 'pending', booleanValue: null }],
+        broken: [{ name: 'broken', errorCode: 'ERROR', errorMessage: 'Judge unavailable' }],
+        revised: [
+          { name: 'revised', booleanValue: false, timestamp: 1, rationale: 'Obsolete failure' },
+          { name: 'revised', booleanValue: true, timestamp: 2, rationale: 'Now matched' },
+        ],
+      },
+      'boolean',
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Show scorer summary' }));
+    expect(screen.getByText('Missing total')).toBeInTheDocument();
+    expect(screen.getByText('Missing pair')).toBeInTheDocument();
+    expect(screen.getByText('Judge unavailable')).toBeInTheDocument();
+    expect(screen.getByText('pending: Not scored')).toBeInTheDocument();
+    expect(screen.getByText('Now matched')).toBeInTheDocument();
+    expect(screen.queryByText(/Obsolete failure|latency:/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/: Failed|: Passed|: Error|: Not scored/).map((item) => item.textContent)).toEqual([
+      'answer: Failed',
+      'association: Failed',
+      'broken: Error',
+      'pending: Not scored',
+      'revised: Passed',
+    ]);
+  });
+
+  it('pins on click without opening the row and dismisses with Escape', async () => {
+    renderCell(
+      TRACE_ID,
+      'correctness',
+      {},
+      {
+        correctness: [{ name: 'correctness', booleanValue: false }],
+        answer: [{ name: 'answer', booleanValue: false, rationale: 'Missing total' }],
+      },
+      'boolean',
+    );
+    const trigger = screen.getByRole('button', { name: 'Show scorer summary' });
+    fireEvent.mouseEnter(trigger);
+    fireEvent.click(trigger);
+    fireEvent.mouseLeave(trigger);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(screen.getByText('Missing total')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByText('Missing total')).not.toBeInTheDocument());
+  });
+});
+
+it('keeps comparison runs and different scorer sources separate', () => {
+  renderCell(
+    TRACE_ID,
+    'correctness',
+    {},
+    {
+      correctness: [{ name: 'correctness', booleanValue: false }],
+      answer: [
+        {
+          name: 'answer',
+          booleanValue: false,
+          source: { sourceType: 'CODE', sourceId: 'automatic' },
+          rationale: 'Automatic failure',
+        },
+        {
+          name: 'answer',
+          booleanValue: true,
+          source: { sourceType: 'HUMAN', sourceId: 'reviewer' },
+          rationale: 'Human approval',
+        },
+      ],
+    },
+    'boolean',
+    {
+      correctness: [{ name: 'correctness', booleanValue: true }],
+      answer: [{ name: 'answer', booleanValue: true, rationale: 'Other run passed' }],
+    },
+  );
+  const buttons = screen.getAllByRole('button', { name: 'Show scorer summary' });
+  fireEvent.click(buttons[0]);
+  expect(screen.getByText('answer (automatic): Failed')).toBeInTheDocument();
+  expect(screen.getByText('answer (reviewer): Passed')).toBeInTheDocument();
+  expect(screen.queryByText('Other run passed')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  fireEvent.click(buttons[1]);
+  expect(screen.getByText('Other run passed')).toBeInTheDocument();
+  expect(screen.queryByText('Automatic failure')).not.toBeInTheDocument();
 });
