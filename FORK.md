@@ -1,0 +1,23 @@
+# Fork maintenance
+
+This fork carries generic evaluation-table fixes on upstream MLflow v3.16.0. The maintained branch is `trace-ui-v3.16.0`; upstream history and tags are preserved. Application instrumentation, datasets, scorers and shared column preferences belong in the HoneyLabs repository.
+
+The UI removes the ten-column cap, defaults to ungrouped traces with IDs hidden, places numeric metrics before Correctness and individual checks, preserves boolean badges, and leaves unscored cells empty. Embedded run-table headers still require assessment metadata to exist.
+
+1. Make and review changes on the maintained branch. Run the affected UI tests, `yarn lint`, `yarn prettier:check`, `yarn i18n:check`, and `yarn type-check` from `mlflow/server/js`, plus the repository pre-commit checks. Browse a real evaluation run before and after refresh; verify both failed and absent assessments.
+2. Push the reviewed commit and start the inherited build workflow with its **full commit SHA**:
+
+   ```sh
+   gh workflow run build-wheel.yml \
+     --repo Honey-Labs-AI/mlflow \
+     --ref trace-ui-v3.16.0 \
+     -f ref="$(git rev-parse HEAD)"
+   ```
+
+3. Wait for the workflow to pass and download its full `mlflow-<version>-0.sha.<full-sha>-py3-none-any.whl` artifact. This self-contained wheel includes the production UI. The upstream workflow also builds supporting package artifacts; HoneyLabs consumes the full wheel.
+4. Publish a new GitHub release targeting that commit and attach the exact wheel. Keep published tags and assets unchanged. The first release is `v3.16.0-trace-ui.1`.
+5. In HoneyLabs, update the `mlflow` wheel URL in `pyproject.toml`, run `uv lock` and `uv sync --frozen`, then run `just test` and verify `just mlflow-ui` in the browser. Commit the dependency, lockfile and any changed guidance together. `uv.lock` records the artifact checksum.
+
+For an upstream upgrade, create a branch from the new upstream release tag and reapply only fixes that remain necessary. Repeat the validation and release process above, updating the workflow branch and version. Fixes accepted upstream can be dropped from this fork.
+
+The existing `dev/build.py --package-type dev --sha <full-sha>` assembles the wheel after `yarn build`; "dev" selects self-contained packaging. Installing directly from Git does not compile the UI. Use the released wheel for HoneyLabs installations.
