@@ -50,7 +50,7 @@ import { useAssistant, useRegisterSelectedIds } from '@mlflow/mlflow/src/assista
 import { useRunLoggedTraceTableArtifacts } from './hooks/useRunLoggedTraceTableArtifacts';
 import { useMarkdownConverter } from '../../../common/utils/MarkdownUtils';
 import { useEditExperimentTraceTags } from '../traces/hooks/useEditExperimentTraceTags';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RunViewEvaluationsTabArtifacts } from './RunViewEvaluationsTabArtifacts';
 import { useGetExperimentRunColor } from '../experiment-page/hooks/useExperimentRunColor';
 import { useQueryClient } from '@databricks/web-shared/query-client';
@@ -208,9 +208,8 @@ const RunViewEvaluationsTabInner = ({
           (responseHasContent && col.type === TracesTableColumnType.TRACE_INFO && col.id === RESPONSE_COLUMN_ID) ||
           (tokensHasContent && col.type === TracesTableColumnType.TRACE_INFO && col.id === TOKENS_COLUMN_ID) ||
           (col.type === TracesTableColumnType.TRACE_INFO &&
-            [TRACE_ID_COLUMN_ID, EXECUTION_DURATION_COLUMN_ID, STATE_COLUMN_ID].includes(col.id)) ||
-          (hasSessionIds &&
-            [SESSION_COLUMN_ID, SIMULATION_GOAL_COLUMN_ID, SIMULATION_PERSONA_COLUMN_ID].includes(col.id)),
+            [EXECUTION_DURATION_COLUMN_ID, STATE_COLUMN_ID].includes(col.id)) ||
+          (hasSessionIds && [SIMULATION_GOAL_COLUMN_ID, SIMULATION_PERSONA_COLUMN_ID].includes(col.id)),
       );
     },
     [evaluatedTraces, otherEvaluatedTraces, isRegressionTest],
@@ -263,17 +262,6 @@ const RunViewEvaluationsTabInner = ({
   const onToggleSessionGrouping = useCallback(() => {
     setIsGroupedBySession((prev) => !prev);
   }, []);
-
-  const hasSetInitialGrouping = useRef(false);
-  useEffect(() => {
-    if (!hasSetInitialGrouping.current && traceInfos && traceInfos.length > 0) {
-      const hasSessionIds = traceInfos.some((trace) => Boolean(trace.trace_metadata?.[SESSION_ID_METADATA_KEY]));
-      if (hasSessionIds) {
-        setIsGroupedBySession(true);
-      }
-      hasSetInitialGrouping.current = true;
-    }
-  }, [traceInfos]);
 
   const experimentIds = useMemo(() => [experimentId], [experimentId]);
 

@@ -10,7 +10,6 @@ import { GenAITracesTableContext } from '../GenAITracesTableContext';
 import { ModelTraceExplorerRunJudgesContextProvider } from '../../model-trace-explorer/contexts/RunJudgesContext';
 import { createTestAssessmentInfo, createTestTraceInfoV3 } from '../test-fixtures/EvaluatedTraceTestUtils';
 import type { EvalTraceComparisonEntry } from '../types';
-import { applyTraceInfoV3ToEvalEntry } from '../utils/TraceUtils';
 
 jest.mock('../../model-trace-explorer/FeatureUtils', () => ({
   shouldUseUnifiedModelTraceComparisonUI: () => false,
@@ -20,34 +19,35 @@ jest.mock('../../model-trace-explorer/FeatureUtils', () => ({
 const TRACE_ID = 'trace-abc';
 const JUDGE_NAME = 'Safety';
 
-const makeComparisonEntry = (traceId: string): EvalTraceComparisonEntry => {
-  const traceInfo = createTestTraceInfoV3(traceId, 'req-1', 'Hello', [], 'exp-1');
-  const [entry] = applyTraceInfoV3ToEvalEntry([
-    {
-      evaluationId: traceId,
-      requestId: 'req-1',
-      inputsId: traceId,
-      inputs: {},
-      outputs: {},
-      targets: {},
-      overallAssessments: [],
-      responseAssessmentsByName: {},
-      metrics: {},
-      traceInfo,
-    },
-  ]);
-  return { currentRunValue: entry };
-};
+const makeComparisonEntry = (
+  traceId: string,
+  assessmentsByName: Record<string, any[]> = {},
+): EvalTraceComparisonEntry => ({
+  currentRunValue: {
+    evaluationId: traceId,
+    requestId: 'req-1',
+    inputsId: traceId,
+    inputs: {},
+    outputs: {},
+    targets: {},
+    overallAssessments: [],
+    responseAssessmentsByName: assessmentsByName,
+    metrics: {},
+    traceInfo: createTestTraceInfoV3(traceId, 'req-1', 'Hello', [], 'exp-1'),
+  },
+});
 
 const renderCell = (
   traceId: string,
   assessmentName: string,
   evaluations: React.ComponentProps<typeof ModelTraceExplorerRunJudgesContextProvider>['evaluations'] = {},
+  assessmentsByName: Record<string, any[]> = {},
+  dtype: 'pass-fail' | 'boolean' | 'numeric' | 'string' = 'pass-fail',
 ) => {
-  const assessmentInfo = createTestAssessmentInfo(assessmentName, assessmentName, 'pass-fail');
-  const comparisonEntry = makeComparisonEntry(traceId);
+  const assessmentInfo = createTestAssessmentInfo(assessmentName, assessmentName, dtype);
+  const comparisonEntry = makeComparisonEntry(traceId, assessmentsByName);
 
-  render(
+  return render(
     <IntlProvider locale="en">
       <DesignSystemProvider>
         <ModelTraceExplorerRunJudgesContextProvider evaluations={evaluations}>
@@ -119,5 +119,50 @@ describe('AssessmentCell — judge running spinner', () => {
     });
 
     expect(querySpinner()).not.toBeInTheDocument();
+  });
+});
+
+describe('AssessmentCell — absent assessments and value preservation', () => {
+  it('renders absent assessment blank without warning triangle or null text', () => {
+    const { container } = renderCell(TRACE_ID, 'unscored_col');
+    expect(screen.queryByText(/null/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No assessment for this evaluation/i)).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeNull();
+  });
+
+  it.each([
+    {
+      desc: 'recorded error',
+      name: 'col_err',
+      dtype: 'string' as const,
+      assessment: {
+        name: 'col_err',
+        errorMessage: 'Check failed',
+      },
+      expectedText: /Error/i,
+    },
+    {
+      desc: 'recorded false',
+      name: 'col_false',
+      dtype: 'boolean' as const,
+      assessment: {
+        name: 'col_false',
+        booleanValue: false,
+      },
+      expectedText: 'False',
+    },
+    {
+      desc: 'recorded numeric 0',
+      name: 'col_zero',
+      dtype: 'numeric' as const,
+      assessment: {
+        name: 'col_zero',
+        numericValue: 0,
+      },
+      expectedText: '0',
+    },
+  ])('preserves $desc', ({ name, dtype, assessment, expectedText }) => {
+    renderCell(TRACE_ID, name, {}, { [name]: [assessment] }, dtype);
+    expect(screen.getByText(expectedText)).toBeInTheDocument();
   });
 });

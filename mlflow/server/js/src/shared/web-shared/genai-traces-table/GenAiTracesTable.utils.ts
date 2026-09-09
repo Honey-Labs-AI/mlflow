@@ -23,6 +23,7 @@ import {
   ISSUES_COLUMN_ID,
   GIT_BRANCH_COLUMN_ID,
   GIT_COMMIT_COLUMN_ID,
+  createAssessmentColumnId,
   createExpectationColumnId,
 } from './hooks/useTableColumns';
 import type { TracesTableColumn, EvalTraceComparisonEntry, RunEvaluationTracesDataEntry } from './types';
@@ -34,9 +35,9 @@ import type { ModelTraceInfoV3 } from '../model-trace-explorer/ModelTrace.types'
 const GROUP_PRIORITY = [
   TracesTableColumnGroup.BASE,
   TracesTableColumnGroup.EXPECTATION,
-  TracesTableColumnGroup.ASSESSMENT,
   TracesTableColumnGroup.INFO,
   TracesTableColumnGroup.TAG,
+  TracesTableColumnGroup.ASSESSMENT,
 ] as const;
 
 /** Preferred order *within* the BASE group by column ID */
@@ -55,7 +56,11 @@ const INFO_COLUMN_PRIORITY = [
 const INFO_COLUMN_LAST = [ISSUES_COLUMN_ID] as const;
 
 /** Preferred order *within* the ASSESSMENT group by column ID */
-const ASSESSMENT_COLUMN_PRIORITY = [KnownEvaluationResultAssessmentName.OVERALL_ASSESSMENT] as const;
+const ASSESSMENT_COLUMN_PRIORITY = [
+  createAssessmentColumnId(KnownEvaluationResultAssessmentName.OVERALL_ASSESSMENT),
+  createAssessmentColumnId(KnownEvaluationResultAssessmentName.CORRECTNESS),
+  createAssessmentColumnId('Correctness'),
+] as const;
 
 /** Preferred order *within* the EXPECTATION group by column ID */
 const EXPECTATION_COLUMN_PRIORITY = [createExpectationColumnId('expected_response')] as const;
@@ -73,6 +78,18 @@ const assessmentColumnRank: Record<string, number> = Object.fromEntries(
 const expectationColumnRank: Record<string, number> = Object.fromEntries(
   EXPECTATION_COLUMN_PRIORITY.map((id, idx) => [id, idx]),
 );
+
+const compareAssessmentColumns = (colA: TracesTableColumn, colB: TracesTableColumn): number => {
+  const isNumericA = colA.assessmentInfo?.dtype === 'numeric';
+  const isNumericB = colB.assessmentInfo?.dtype === 'numeric';
+  if (isNumericA !== isNumericB) {
+    return isNumericA ? -1 : 1;
+  }
+  const rankA = assessmentColumnRank[colA.id] ?? Infinity;
+  const rankB = assessmentColumnRank[colB.id] ?? Infinity;
+  if (rankA !== rankB) return rankA - rankB;
+  return (colA.label || '').localeCompare(colB.label || '');
+};
 
 export function sortGroupedColumns(
   columns: TracesTableColumn[],
@@ -125,10 +142,7 @@ export function sortGroupedColumns(
     }
 
     if (groupA === TracesTableColumnGroup.ASSESSMENT) {
-      const rankA = assessmentColumnRank[colA.id] ?? Infinity;
-      const rankB = assessmentColumnRank[colB.id] ?? Infinity;
-      if (rankA !== rankB) return rankA - rankB;
-      return colA.label.localeCompare(colB.label);
+      return compareAssessmentColumns(colA, colB);
     }
 
     if (groupA === TracesTableColumnGroup.INFO) {
@@ -166,13 +180,11 @@ export const sortColumns = (columns: ColumnDef<EvalTraceComparisonEntry>[], sele
     const diff = getPriority(a) - getPriority(b);
     if (diff !== 0) return diff;
 
-    // secondary key: for assessment columns, prioritize 'Overall' and then sort alphabetically by label
+    // secondary key: for assessment columns, prioritize numeric, then 'Overall' / Correctness, and then sort alphabetically by label
     const aCol = selectedColumns.find((c) => c.id === a.id);
     const bCol = selectedColumns.find((c) => c.id === b.id);
     if (aCol?.type === TracesTableColumnType.ASSESSMENT && bCol?.type === TracesTableColumnType.ASSESSMENT) {
-      if (aCol.id === KnownEvaluationResultAssessmentName.OVERALL_ASSESSMENT) return -1;
-      if (bCol.id === KnownEvaluationResultAssessmentName.OVERALL_ASSESSMENT) return 1;
-      return (aCol.label || '').localeCompare(bCol.label || '');
+      return compareAssessmentColumns(aCol, bCol);
     }
 
     // tertiary key: original array order (stable sort fallback)

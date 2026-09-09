@@ -142,7 +142,7 @@ export function getAssessmentInfos(
       }
 
       if (!assessmentDtypes[assessmentName]) {
-        if (assessmentName in KnownEvaluationResultAssessmentValueLabel) {
+        if (assessmentName in KnownEvaluationResultAssessmentValueLabel && dtype !== 'boolean' && dtype !== 'numeric') {
           dtype = 'pass-fail';
         }
         assessmentDtypes[assessmentName] = dtype;

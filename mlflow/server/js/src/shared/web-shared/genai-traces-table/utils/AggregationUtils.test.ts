@@ -445,6 +445,21 @@ describe('getAssessmentInfos', () => {
     expect(mixedAssessmentInfo?.isSessionLevelAssessment).toBe(true);
   });
 
+  it('preserves boolean dtype for known assessment names when values are boolean', () => {
+    const currentEvaluationResults = makeTracesFromAssessments([
+      {
+        responseAssessmentsByName: {
+          correctness: [{ name: 'correctness', booleanValue: true }],
+        },
+      },
+    ]);
+
+    const result = getAssessmentInfos(intl, currentEvaluationResults, undefined);
+    const correctnessInfo = result.find((info) => info.name === 'correctness');
+
+    expect(correctnessInfo?.dtype).toBe('boolean');
+  });
+
   describe('scorer description in tooltip', () => {
     const codeSource: RunEvaluationResultAssessmentSource = {
       sourceType: 'CODE',

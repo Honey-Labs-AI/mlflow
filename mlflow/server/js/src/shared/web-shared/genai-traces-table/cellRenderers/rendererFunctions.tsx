@@ -44,7 +44,6 @@ import {
   getEvaluationResultAssessmentValue,
   getEvaluationResultInputTitle,
   KnownEvaluationResultAssessmentStringValue,
-  KnownEvaluationResultAssessmentValueMissingTooltip,
   stringifyValue,
 } from '../components/GenAiEvaluationTracesReview.utils';
 import { RunColorCircle } from '../components/RunColorCircle';
@@ -231,7 +230,6 @@ export const assessmentCellRenderer = (
 
   const assessmentChanged = otherValue !== currentValue;
 
-  const missingTooltip = KnownEvaluationResultAssessmentValueMissingTooltip[assessmentName];
   return (
     <div
       css={{
@@ -333,37 +331,7 @@ export const assessmentCellRenderer = (
             );
           })}
         </div>
-      ) : (
-        <EvaluationsReviewAssessmentTag
-          key={`tag_${assessmentName}_${comparisonEntry.currentRunValue?.evaluationId}`}
-          showRationaleInTooltip
-          disableJudgeTypeIcon
-          hideAssessmentName
-          isRootCauseAssessment={currentIsAssessmentRootCause}
-          assessmentInfo={assessmentInfo}
-          assessment={{
-            name: assessmentName,
-            rationale: missingTooltip
-              ? intl.formatMessage(missingTooltip)
-              : intl.formatMessage({
-                  defaultMessage: 'No assessment for this evaluation',
-                  description: 'Text displayed when there is no assessment for a given evaluation',
-                }),
-            source: {
-              sourceId: '',
-              sourceType: 'AI_JUDGE',
-              metadata: {},
-            },
-            stringValue: null,
-            booleanValue: null,
-            rootCauseAssessment: null,
-            numericValue: null,
-            timestamp: null,
-            metadata: {},
-          }}
-          type="value"
-        />
-      )}
+      ) : null}
     </div>
   );
 };

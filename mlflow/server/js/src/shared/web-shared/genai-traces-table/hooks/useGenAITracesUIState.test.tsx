@@ -80,23 +80,10 @@ describe('useGenAITracesUIStateColumns', () => {
       for (const k in memoryStore) delete memoryStore[k];
     });
 
-    it('selectedColumns with all columns -> should max out at 10 columns', () => {
+    it('selectedColumns with all columns -> should keep all columns without arbitrary clamp', () => {
       const { result } = renderHook(() => useSelectedColumns(expId, mockColumns, (cols) => cols));
 
-      expect(sort(result.current.selectedColumns.map((c) => c.id))).toEqual(
-        sort([
-          INPUTS_COLUMN_ID,
-          'col1',
-          'col2',
-          'col3',
-          EXECUTION_DURATION_COLUMN_ID,
-          REQUEST_TIME_COLUMN_ID,
-          SOURCE_COLUMN_ID,
-          STATE_COLUMN_ID,
-          TRACE_NAME_COLUMN_ID,
-          'tags-eval',
-        ]),
-      );
+      expect(sort(result.current.selectedColumns.map((c) => c.id))).toEqual(sort(mockColumns.map((c) => c.id)));
     });
 
     it('setSelectedColumns -> should update selectedColumns', () => {
@@ -158,10 +145,8 @@ describe('useGenAITracesUIStateColumns', () => {
 
     const { result } = renderHook(() => useGenAITracesUIStateColumns(expId, mockColumns, initialSelected));
 
-    // initialSelected leaves 1 assessment (col1) hidden ➜ 11 visible.
-    // The clamp can only show 10, so it hides 1 more assessment (col5).
-    // Final hidden set: col1 + col5  = 2 assessments hidden.
-    expect(sort(result.current.hiddenColumns)).toEqual(sort(['col1', 'col5']));
+    // initialSelected leaves 1 assessment (col1) hidden without arbitrary clamp hiding others.
+    expect(sort(result.current.hiddenColumns)).toEqual(sort(['col1']));
   });
 
   it('derives hidden columns from defaultSelectedColumns and local storage', () => {
@@ -208,11 +193,11 @@ describe('useGenAITracesUIStateColumns', () => {
     );
   });
 
-  it('auto-hides assessment columns to keep ≤10 visible', () => {
+  it('does not hide assessment columns when selected by defaultSelectedColumns', () => {
     const initialSelected = (cols: typeof mockColumns) => cols; // all visible
 
     const { result } = renderHook(() => useGenAITracesUIStateColumns(expId, mockColumns, initialSelected));
 
-    expect(result.current.hiddenColumns).toEqual(sort(['col4', 'col5'])); // only 3 of 5 remain visible
+    expect(result.current.hiddenColumns).toEqual([]);
   });
 });

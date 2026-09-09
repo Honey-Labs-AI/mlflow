@@ -12,7 +12,6 @@ import {
 } from './useTableColumns';
 import { shouldEnableTracesTableStatePersistence } from '../../model-trace-explorer/FeatureUtils';
 import type { TracesTableColumn } from '../types';
-import { TracesTableColumnType } from '../types';
 
 export interface GenAITracesUIState {
   /**
@@ -22,35 +21,11 @@ export interface GenAITracesUIState {
   columnOverrides: Record<string, boolean>;
 }
 
-const DEFAULT_MAX_VISIBLE_COLUMNS = 10;
-
 const LOCAL_STORAGE_KEY = 'genaiTracesUIState-columns';
 const LOCAL_STORAGE_VERSION = 1;
 
-const toVisibleColumnsFromHiddenColumns = (hiddenColumns: string[], allColumns: TracesTableColumn[]) => {
-  return allColumns.filter((col) => !hiddenColumns.includes(col.id));
-};
-
 const toHiddenColumnsFromVisibleColumns = (visibleColumns: TracesTableColumn[], allColumns: TracesTableColumn[]) => {
   return allColumns.filter((col) => !visibleColumns.includes(col)).map((col) => col.id);
-};
-
-// This function adjusts the hidden columns to ensure that the number of visible columns is at most DEFAULT_MAX_VISIBLE_COLUMNS
-// If over the limit, it removes assessment columns until the limit is met.
-const adjustHiddenColumns = (hiddenColumns: string[], allColumns: TracesTableColumn[]): string[] => {
-  let visibleColumns = toVisibleColumnsFromHiddenColumns(hiddenColumns, allColumns);
-  if (visibleColumns.length > DEFAULT_MAX_VISIBLE_COLUMNS) {
-    const assessmentColumns = visibleColumns.filter((col) => col.type === TracesTableColumnType.ASSESSMENT);
-    const nonAssessmentColumns = visibleColumns.filter((col) => col.type !== TracesTableColumnType.ASSESSMENT);
-
-    // Calculate how many assessment columns we need to remove
-    const columnsToRemove = visibleColumns.length - DEFAULT_MAX_VISIBLE_COLUMNS;
-    const assessmentColumnsToKeep = Math.max(0, assessmentColumns.length - columnsToRemove);
-
-    // Keep the first N assessment columns and all non-assessment columns
-    visibleColumns = [...nonAssessmentColumns, ...assessmentColumns.slice(0, assessmentColumnsToKeep)];
-  }
-  return toHiddenColumnsFromVisibleColumns(visibleColumns, allColumns);
 };
 
 const getDefaultHiddenColumns = (
@@ -58,16 +33,10 @@ const getDefaultHiddenColumns = (
   defaultSelectedColumns?: (allColumns: TracesTableColumn[]) => TracesTableColumn[],
 ): string[] => {
   if (defaultSelectedColumns) {
-    return adjustHiddenColumns(
-      toHiddenColumnsFromVisibleColumns(defaultSelectedColumns(allColumns), allColumns),
-      allColumns,
-    );
+    return toHiddenColumnsFromVisibleColumns(defaultSelectedColumns(allColumns), allColumns);
   }
 
-  return adjustHiddenColumns(
-    [TRACE_NAME_COLUMN_ID, SOURCE_COLUMN_ID, EXECUTION_DURATION_COLUMN_ID, STATE_COLUMN_ID],
-    allColumns,
-  );
+  return [TRACE_NAME_COLUMN_ID, SOURCE_COLUMN_ID, EXECUTION_DURATION_COLUMN_ID, STATE_COLUMN_ID];
 };
 
 export const useGenAITracesUIStateColumns = (

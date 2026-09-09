@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 
-import { getSimulationColumnsToAdd, sortGroupedColumns } from './GenAiTracesTable.utils';
+import { getSimulationColumnsToAdd, sortColumns, sortGroupedColumns } from './GenAiTracesTable.utils';
+import { KnownEvaluationResultAssessmentName } from './enum';
 import {
   RESPONSE_COLUMN_ID,
   SIMULATION_GOAL_COLUMN_ID,
@@ -100,14 +101,14 @@ describe('sortGroupedColumns — base / expectations / assessments / other order
     group: TracesTableColumnGroup.ASSESSMENT,
   };
 
-  it('orders columns as: BASE → EXPECTATION → ASSESSMENT → INFO', () => {
+  it('orders columns as: BASE → EXPECTATION → INFO → ASSESSMENT', () => {
     // Scramble the input so order in the array can't accidentally pass the test.
     const sorted = sortGroupedColumns([executionTimeCol, qualityCol, expectedResponseCol, responseCol]);
     expect(sorted.map((c) => c.id)).toEqual([
       responseCol.id,
       expectedResponseCol.id,
-      qualityCol.id,
       executionTimeCol.id,
+      qualityCol.id,
     ]);
   });
 
@@ -116,5 +117,83 @@ describe('sortGroupedColumns — base / expectations / assessments / other order
     // priority the sort would put expected_facts first.
     const sorted = sortGroupedColumns([expectedFactsCol, expectedResponseCol]);
     expect(sorted.map((c) => c.id)).toEqual([expectedResponseCol.id, expectedFactsCol.id]);
+  });
+
+  it('orders overall assessment and correctness first within the ASSESSMENT group', () => {
+    const overallCol: TracesTableColumn = {
+      id: createAssessmentColumnId(KnownEvaluationResultAssessmentName.OVERALL_ASSESSMENT),
+      label: 'Overall Assessment',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+    };
+    const correctnessCol: TracesTableColumn = {
+      id: createAssessmentColumnId(KnownEvaluationResultAssessmentName.CORRECTNESS),
+      label: 'Correctness',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+    };
+    const sorted = sortGroupedColumns([qualityCol, correctnessCol, overallCol]);
+    expect(sorted.map((c) => c.id)).toEqual([overallCol.id, correctnessCol.id, qualityCol.id]);
+  });
+
+  it('orders numeric assessments before overall correctness and boolean assessments in both sortGroupedColumns and sortColumns', () => {
+    const latencyCol: TracesTableColumn = {
+      id: createAssessmentColumnId('latency'),
+      label: 'latency',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+      assessmentInfo: { dtype: 'numeric' } as any,
+    };
+    const costCol: TracesTableColumn = {
+      id: createAssessmentColumnId('cost'),
+      label: 'cost',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+      assessmentInfo: { dtype: 'numeric' } as any,
+    };
+    const correctnessCol: TracesTableColumn = {
+      id: createAssessmentColumnId(KnownEvaluationResultAssessmentName.CORRECTNESS),
+      label: 'Correctness',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+      assessmentInfo: { dtype: 'boolean' } as any,
+    };
+    const answerCorrectnessCol: TracesTableColumn = {
+      id: createAssessmentColumnId('answer_correctness'),
+      label: 'answer_correctness',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+      assessmentInfo: { dtype: 'boolean' } as any,
+    };
+    const toolTrajectoryCol: TracesTableColumn = {
+      id: createAssessmentColumnId('tool_trajectory'),
+      label: 'tool_trajectory',
+      type: TracesTableColumnType.ASSESSMENT,
+      group: TracesTableColumnGroup.ASSESSMENT,
+      assessmentInfo: { dtype: 'boolean' } as any,
+    };
+
+    const mixedAssessments = [answerCorrectnessCol, latencyCol, toolTrajectoryCol, correctnessCol, costCol];
+
+    // sortGroupedColumns orders: numeric (cost, latency) -> Correctness -> boolean (answer_correctness, tool_trajectory)
+    const sortedGrouped = sortGroupedColumns(mixedAssessments);
+    expect(sortedGrouped.map((c) => c.id)).toEqual([
+      costCol.id,
+      latencyCol.id,
+      correctnessCol.id,
+      answerCorrectnessCol.id,
+      toolTrajectoryCol.id,
+    ]);
+
+    // sortColumns produces consistent order
+    const columnDefs = mixedAssessments.map((c) => ({ id: c.id }) as any);
+    const sortedFlat = sortColumns(columnDefs, mixedAssessments);
+    expect(sortedFlat.map((c) => c.id)).toEqual([
+      costCol.id,
+      latencyCol.id,
+      correctnessCol.id,
+      answerCorrectnessCol.id,
+      toolTrajectoryCol.id,
+    ]);
   });
 });

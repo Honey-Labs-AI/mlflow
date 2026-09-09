@@ -11063,10 +11063,6 @@
     "defaultMessage": "No additional metadata is available for this dataset.",
     "description": "Body shown in the V2 evaluation dataset metadata modal when digest/schema/profile are all empty"
   },
-  "gOUJ0f": {
-    "defaultMessage": "No assessment for this evaluation",
-    "description": "Text displayed when there is no assessment for a given evaluation"
-  },
   "gPWxlB": {
     "defaultMessage": "Error",
     "description": "The label for an error asseessment above a bar-chart in the summary stats."
