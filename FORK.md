@@ -4,6 +4,8 @@ This fork carries generic evaluation-table fixes on upstream MLflow v3.16.0. The
 
 The UI removes the ten-column cap, defaults to ungrouped traces with IDs hidden, places numeric metrics before Correctness and individual checks, preserves boolean badges, and leaves unscored cells empty. Embedded run-table headers still require assessment metadata to exist.
 
+The experiment tag `mlflow.ui.evaluationRuns.defaultColumns` accepts an ordered JSON array of native column IDs, such as `["run_name", "param.model", "param.reasoning", "metric.latency/mean"]`. It controls the Evaluation runs list, including columns whose values have not arrived yet. Run selection and name remain available; other columns stay in the picker. Choices survive data refresh; browser reload reapplies the shared default. Missing or malformed configuration uses upstream defaults. HoneyLabs owns its selected field names in catalog synchronization.
+
 1. Make and review changes on the maintained branch. Run the affected UI tests, `yarn lint`, `yarn prettier:check`, `yarn i18n:check`, and `yarn type-check` from `mlflow/server/js`, plus the repository pre-commit checks. Browse a real evaluation run before and after refresh; verify both failed and absent assessments.
 2. Push the reviewed commit and start the inherited build workflow with its **full commit SHA**:
 

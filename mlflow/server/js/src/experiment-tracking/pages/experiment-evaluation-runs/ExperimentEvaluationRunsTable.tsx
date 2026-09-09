@@ -23,6 +23,7 @@ import { useExperimentEvaluationRunsRowVisibility } from './hooks/useExperimentE
 export interface ExperimentEvaluationRunsTableProps {
   data: RunEntityOrGroupData[];
   uniqueColumns: string[];
+  columnOrder?: string[];
   selectedColumns: { [key: string]: boolean };
   selectedRunUuid?: string;
   setSelectedRunUuid: (runUuid: string) => void;
@@ -44,6 +45,7 @@ export const ExperimentEvaluationRunsTable = forwardRef<HTMLDivElement, Experime
     {
       data,
       uniqueColumns,
+      columnOrder = [],
       selectedColumns,
       selectedRunUuid,
       setSelectedRunUuid,
@@ -169,6 +171,7 @@ export const ExperimentEvaluationRunsTable = forwardRef<HTMLDivElement, Experime
         },
         onRowSelectionChange: setRowSelection,
         state: {
+          columnOrder,
           rowSelection,
           sorting,
           expanded: expandedRows,

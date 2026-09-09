@@ -2,8 +2,9 @@ import { jest, describe, beforeAll, beforeEach, test, expect } from '@jest/globa
 import type { DefaultBodyType, PathParams, ResponseResolver, RestRequest, RestContext } from 'msw';
 import { rest } from 'msw';
 import { setupServer } from '../../../common/utils/setup-msw';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import ExperimentEvaluationRunsPage from './ExperimentEvaluationRunsPage';
+import { useGetExperimentQuery } from '../../hooks/useExperimentQuery';
 import { setupTestRouter, testRoute, TestRouter } from '../../../common/utils/RoutingTestUtils';
 import { TestApolloProvider } from '../../../common/utils/TestApolloProvider';
 import { MockedReduxStoreProvider } from '../../../common/utils/TestUtils';
@@ -112,6 +113,7 @@ describe('ExperimentEvaluationRunsPage', () => {
 
   beforeEach(async () => {
     server.resetHandlers();
+    jest.mocked(useGetExperimentQuery).mockReturnValue({} as ReturnType<typeof useGetExperimentQuery>);
     renderTestComponent();
     const table = await screen.findByRole('table');
     Object.defineProperty(table, 'scrollHeight', {
@@ -123,6 +125,54 @@ describe('ExperimentEvaluationRunsPage', () => {
       writable: true,
       value: 0,
     });
+  });
+
+  test('experiment defaults show configured columns before values arrive', async () => {
+    cleanup();
+    server.use(
+      rest.post('ajax-api/2.0/mlflow/runs/search', (req, res, ctx) =>
+        res(
+          ctx.json({
+            runs: [
+              {
+                ...createMockRun({ index: 0 }),
+                data: {
+                  params: [],
+                  tags: [],
+                  metrics: [{ key: 'latency', value: 46.01642105263158 }],
+                },
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+    jest.mocked(useGetExperimentQuery).mockReturnValue({
+      data: {
+        tags: [
+          {
+            key: 'mlflow.ui.evaluationRuns.defaultColumns',
+            value: JSON.stringify(['run_name', 'param.reasoning', 'metric.latency']),
+          },
+        ],
+      },
+    } as ReturnType<typeof useGetExperimentQuery>);
+    renderTestComponent();
+    expect(await screen.findByRole('columnheader', { name: /reasoning/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /latency/ })).toBeInTheDocument();
+    expect(await screen.findByText('46.02')).toHaveAttribute('title', '46.01642105263158');
+    expect(screen.queryByRole('columnheader', { name: 'Status' })).not.toBeInTheDocument();
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    expect(headers.indexOf('reasoning')).toBeLessThan(headers.indexOf('latency'));
+  });
+
+  test('malformed experiment defaults preserve the normal columns', async () => {
+    cleanup();
+    jest.mocked(useGetExperimentQuery).mockReturnValue({
+      data: { tags: [{ key: 'mlflow.ui.evaluationRuns.defaultColumns', value: '{invalid' }] },
+    } as ReturnType<typeof useGetExperimentQuery>);
+    renderTestComponent();
+    expect(await screen.findByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
   });
 
   test('should display runs title when fetched', async () => {

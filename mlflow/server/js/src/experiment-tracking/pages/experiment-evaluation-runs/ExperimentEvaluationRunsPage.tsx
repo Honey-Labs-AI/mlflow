@@ -1,6 +1,7 @@
 import invariant from 'invariant';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Global } from '@emotion/react';
+import { useGetExperimentQuery } from '../../hooks/useExperimentQuery';
 import { useExperimentEvaluationRunsData } from '../../components/experiment-page/hooks/useExperimentEvaluationRunsData';
 import { ExperimentEvaluationRunsPageWrapper } from './ExperimentEvaluationRunsPageWrapper';
 import { ExperimentEvaluationRunsTable } from './ExperimentEvaluationRunsTable';
@@ -15,9 +16,10 @@ import evalRunsEmptyImg from '@mlflow/mlflow/src/common/static/eval-runs-empty.s
 import Utils from '@mlflow/mlflow/src/common/utils/Utils';
 import type { DatasetWithRunType } from '../../components/experiment-page/components/runs/ExperimentViewDatasetDrawer';
 import { ExperimentViewDatasetDrawer } from '../../components/experiment-page/components/runs/ExperimentViewDatasetDrawer';
-import { compact, keyBy, mapValues, uniq, xor, xorBy } from 'lodash';
+import { compact, keyBy, mapValues, uniq, xorBy } from 'lodash';
 import {
   EVAL_RUNS_TABLE_BASE_SELECTION_STATE,
+  EVAL_RUNS_UNSELECTABLE_COLUMNS,
   EvalRunsTableKeyedColumnPrefix,
 } from './ExperimentEvaluationRunsTable.constants';
 import { invalidateMlflowSearchTracesCache } from '@databricks/web-shared/genai-traces-table';
@@ -68,9 +70,27 @@ const ExperimentEvaluationRunsPageImpl = () => {
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedDatasetWithRun, setSelectedDatasetWithRun] = useState<DatasetWithRunType>();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedColumns, setSelectedColumns] = useState<{ [key: string]: boolean }>(
-    EVAL_RUNS_TABLE_BASE_SELECTION_STATE,
-  );
+  const [columnOverrides, setSelectedColumns] = useState<Record<string, boolean>>({});
+  const { data: experiment } = useGetExperimentQuery({ experimentId });
+  const defaultColumnsTag = experiment?.tags?.find(
+    (tag) => tag.key === 'mlflow.ui.evaluationRuns.defaultColumns',
+  )?.value;
+  const defaultColumns = useMemo<string[] | undefined>(() => {
+    if (!defaultColumnsTag) return undefined;
+    try {
+      const columns: unknown = JSON.parse(defaultColumnsTag);
+      return Array.isArray(columns) &&
+        columns.every(
+          (column) =>
+            typeof column === 'string' &&
+            (column in EVAL_RUNS_TABLE_BASE_SELECTION_STATE || /^(metric|param|tag)\..+/.test(column)),
+        )
+        ? uniq(columns)
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [defaultColumnsTag]);
 
   const queryClient = useQueryClient();
   const enableImprovedComparison = shouldEnableImprovedEvalRunsComparison();
@@ -245,7 +265,8 @@ const ExperimentEvaluationRunsPageImpl = () => {
         }
       }
     }
-    return [
+    return uniq([
+      ...(defaultColumns ?? []).filter((column) => !(column in EVAL_RUNS_TABLE_BASE_SELECTION_STATE)),
       ...Array.from(metricKeys).map((key) =>
         createEvalRunsTableKeyedColumnKey(EvalRunsTableKeyedColumnPrefix.METRIC, key),
       ),
@@ -253,31 +274,23 @@ const ExperimentEvaluationRunsPageImpl = () => {
         createEvalRunsTableKeyedColumnKey(EvalRunsTableKeyedColumnPrefix.PARAM, key),
       ),
       ...Array.from(tagKeys).map((key) => createEvalRunsTableKeyedColumnKey(EvalRunsTableKeyedColumnPrefix.TAG, key)),
-    ];
-  }, [runs]);
+    ]);
+  }, [runs, defaultColumns]);
 
-  const baseColumns = useMemo(() => Object.keys(EVAL_RUNS_TABLE_BASE_SELECTION_STATE), []);
-  const existingColumns = useMemo(
-    () => Object.keys(selectedColumns).filter((column) => !baseColumns.includes(column)),
-    [baseColumns, selectedColumns],
-  );
-  const columnDifference = useMemo(() => xor(existingColumns, uniqueColumns), [existingColumns, uniqueColumns]);
-  // if there is a difference between the existing column state and
-  // the unique metrics (e.g. the user performed a search and the
-  // list of available metrics changed), reset the selected columns
-  // to the default state to avoid displaying columns that don't exist
-  if (columnDifference.length > 0) {
-    const metricColumns = uniqueColumns.filter((col) => col.startsWith(EvalRunsTableKeyedColumnPrefix.METRIC + '.'));
-    // When flag is ON, limit default visible metrics to 5; when OFF, show all (original behavior)
-    const defaultEnabledMetrics = enableImprovedComparison
-      ? new Set(metricColumns.slice(0, DEFAULT_VISIBLE_METRIC_COLUMNS))
-      : new Set(metricColumns);
-
-    setSelectedColumns({
-      ...EVAL_RUNS_TABLE_BASE_SELECTION_STATE,
-      ...mapValues(keyBy(uniqueColumns), (_, key) => defaultEnabledMetrics.has(key)),
-    });
-  }
+  const selectedColumns = useMemo(() => {
+    const metricColumns = uniqueColumns.filter((column) => column.startsWith('metric.'));
+    const enabled = new Set(
+      defaultColumns ??
+        (enableImprovedComparison ? metricColumns.slice(0, DEFAULT_VISIBLE_METRIC_COLUMNS) : metricColumns),
+    );
+    const defaults = {
+      ...mapValues(EVAL_RUNS_TABLE_BASE_SELECTION_STATE, (visible, key) =>
+        defaultColumns ? enabled.has(key) || EVAL_RUNS_UNSELECTABLE_COLUMNS.has(key) : visible,
+      ),
+      ...mapValues(keyBy(uniqueColumns), (_, key) => enabled.has(key)),
+    };
+    return mapValues(defaults, (visible, key) => columnOverrides[key] ?? visible);
+  }, [defaultColumns, uniqueColumns, enableImprovedComparison, columnOverrides]);
 
   const isEmpty = runUuids.length === 0 && !searchFilter && !isLoading;
 
@@ -386,6 +399,7 @@ const ExperimentEvaluationRunsPageImpl = () => {
     <ExperimentEvaluationRunsTable
       data={runsWithHierarchy}
       uniqueColumns={uniqueColumns}
+      columnOrder={defaultColumns ? [...EVAL_RUNS_UNSELECTABLE_COLUMNS, ...defaultColumns] : []}
       selectedColumns={selectedColumns}
       selectedRunUuid={
         enableImprovedComparison && isComparisonMode && viewMode === ExperimentEvaluationRunsPageMode.TRACES

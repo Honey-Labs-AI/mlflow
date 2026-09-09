@@ -23,6 +23,7 @@ import { DatasetSourceTypes, RunEntity } from '../../types';
 import { Link, useNavigate, useSearchParams } from '@mlflow/mlflow/src/common/utils/RoutingUtils';
 import { useGetLoggedModelQuery } from '../../hooks/logged-models/useGetLoggedModelQuery';
 import Routes from '../../routes';
+import Utils from '../../../common/utils/Utils';
 import { getPreservedQueryString } from '../experiment-page-tabs/side-nav/utils';
 import { useSaveExperimentRunColor } from '../../components/experiment-page/hooks/useExperimentRunColor';
 import { useGetExperimentRunColor } from '../../components/experiment-page/hooks/useExperimentRunColor';
@@ -331,8 +332,10 @@ export const ModelVersionCell: ColumnDef<RunEntityOrGroupData>['cell'] = ({ row 
 };
 
 export const KeyedValueCell: ColumnDef<RunEntityOrGroupData>['cell'] = ({ getValue }) => {
-  const value = getValue<string>();
-  return <span title={value}>{value ?? '-'}</span>;
+  const value = getValue<string | number | undefined>();
+  return (
+    <span title={value?.toString()}>{typeof value === 'number' ? Utils.formatMetric(value) : (value ?? '-')}</span>
+  );
 };
 
 export const SortableHeaderCell = ({
