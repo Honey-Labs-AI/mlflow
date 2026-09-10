@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@databricks/web-shared/query-client';
 import type { SearchRunsApiResponse } from '@mlflow/mlflow/src/experiment-tracking/types';
 import { MlflowService } from '../../../sdk/MlflowService';
 import { useMemo } from 'react';
+import { RUNS_AUTO_REFRESH_INTERVAL } from '../utils/experimentPage.fetch-utils';
 
 export const useExperimentEvaluationRunsData = ({
   experimentId,
@@ -31,6 +32,10 @@ export const useExperimentEvaluationRunsData = ({
     },
     cacheTime: 0,
     refetchOnWindowFocus: false,
+    refetchInterval: (data) =>
+      data?.pages.some((page) => page.runs?.some((run) => ['RUNNING', 'SCHEDULED'].includes(run.info.status)))
+        ? RUNS_AUTO_REFRESH_INTERVAL
+        : false,
     retry: false,
     enabled,
     getNextPageParam: (lastPage) => lastPage.next_page_token,

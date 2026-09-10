@@ -130,6 +130,7 @@ export const AssessmentSummary = ({
         side="bottom"
         align="start"
         maxWidth={560}
+        collisionPadding={16}
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onMouseEnter={cancelClose}
@@ -147,9 +148,25 @@ export const AssessmentSummary = ({
             setMode('closed');
           }
         }}
-        css={{ userSelect: 'text', maxHeight: '70vh', overflowY: 'auto', padding: theme.spacing.md }}
+        css={{
+          userSelect: 'text',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'min(70vh, var(--radix-popover-content-available-height))',
+          maxWidth: 'min(560px, var(--radix-popover-content-available-width))',
+          overflow: 'hidden',
+          padding: theme.spacing.md,
+        }}
       >
-        <div css={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.md }}>
+        <div
+          css={{
+            display: 'flex',
+            flexShrink: 0,
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: theme.spacing.md,
+          }}
+        >
           <Typography.Text bold>{assessmentInfo.displayName}</Typography.Text>
           <div css={{ display: 'flex', gap: theme.spacing.xs }}>
             <CopyActionButton
@@ -171,6 +188,8 @@ export const AssessmentSummary = ({
             gap: theme.spacing.md,
             marginTop: theme.spacing.sm,
             overflowWrap: 'anywhere',
+            minHeight: 0,
+            overflowY: 'auto',
           }}
         >
           <Typography.Text>{summary.split('\n')[0]}</Typography.Text>
@@ -197,7 +216,7 @@ export const AssessmentSummary = ({
             </div>
           ))}
         </div>
-        <Typography.Hint css={{ marginTop: theme.spacing.sm }}>
+        <Typography.Hint css={{ flexShrink: 0, marginTop: theme.spacing.sm }}>
           {intl.formatMessage({
             defaultMessage: 'Click to keep open. Escape or click outside to close.',
             description: 'Assessment summary interaction hint',

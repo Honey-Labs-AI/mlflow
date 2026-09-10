@@ -211,6 +211,37 @@ describe('Correctness scorer summary', () => {
     ]);
   });
 
+  it('keeps every failure before long passing rationales with copy controls outside the results', () => {
+    renderCell(
+      TRACE_ID,
+      'correctness',
+      {},
+      {
+        correctness: [{ name: 'correctness', booleanValue: false }],
+        answer_correctness: [
+          { name: 'answer_correctness', booleanValue: true, rationale: 'Matched evidence. '.repeat(200) },
+        ],
+        ...Object.fromEntries(
+          Array.from({ length: 8 }, (_, index) => [
+            `check_${index}`,
+            [{ name: `check_${index}`, booleanValue: false, rationale: `Failure ${index}` }],
+          ]),
+        ),
+        viz_structure: [{ name: 'viz_structure', booleanValue: false, rationale: 'Expected chart(s), got none' }],
+      },
+      'boolean',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Show scorer summary' }));
+    expect(screen.getAllByText(/: Failed|: Passed/).map((item) => item.textContent)).toEqual([
+      ...Array.from({ length: 8 }, (_, index) => `check_${index}: Failed`),
+      'viz_structure: Failed',
+      'answer_correctness: Passed',
+    ]);
+    const body = screen.getByText('Expected chart(s), got none').parentElement?.parentElement;
+    expect(body).not.toContainElement(screen.getByRole('button', { name: 'Copy' }));
+    expect(body).not.toContainElement(screen.getByRole('button', { name: 'Close' }));
+  });
+
   it('pins on click without opening the row and dismisses with Escape', async () => {
     renderCell(
       TRACE_ID,
