@@ -75,7 +75,7 @@ export const AssessmentSummary = ({
       });
     })
     .sort((left, right) => {
-      const order: Record<string, number> = { failed: 0, error: 1, missing: 2, passed: 3 };
+      const order = { failed: 0, error: 1, missing: 2, passed: 3 };
       return order[left.status] - order[right.status] || left.name.localeCompare(right.name);
     });
   const summary = [
