@@ -49,7 +49,7 @@ const SQL_SYNTAX_PATTERN = new RegExp(
   'i',
 );
 
-export const RUNS_AUTO_REFRESH_INTERVAL = 30000;
+export const RUNS_AUTO_REFRESH_INTERVAL = 10000;
 
 /**
  * Creates "order by" SQL expression

@@ -24,11 +24,13 @@ export function useAssessmentCountMetrics({
   runUuid,
   timeRange,
   disabled,
+  refetchInterval,
 }: {
   experimentIds: string[];
   runUuid?: string;
   timeRange?: { startTime?: string; endTime?: string };
   disabled: boolean;
+  refetchInterval?: number | false;
 }): AssessmentCountMetrics | undefined {
   const usingInfinitePagination = shouldUseInfinitePaginatedTraces();
   const enabled = usingInfinitePagination && !disabled;
@@ -51,6 +53,7 @@ export function useAssessmentCountMetrics({
     endTimeMs,
     enabled,
     filters,
+    refetchInterval,
   });
 
   return useMemo(() => {

@@ -1,3 +1,4 @@
+import { RUNS_AUTO_REFRESH_INTERVAL } from '../experiment-page/utils/experimentPage.fetch-utils';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { isNil } from 'lodash';
 import { ParagraphSkeleton, Typography, Empty, Drawer, useDesignSystemTheme } from '@databricks/design-system';
@@ -147,6 +148,7 @@ const RunViewEvaluationsTabInner = ({
     filterByAssessmentSourceRun: true,
     showConsolidatedResultColumn: isRegressionTest,
     scorerDescriptionsByName,
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
   });
 
   // Regression-test view: drop the State column and relabel trace-id to "Test".
@@ -245,6 +247,7 @@ const RunViewEvaluationsTabInner = ({
     filterByAssessmentSourceRun: true,
     // Disable pagination in comparison mode — both runs need complete data to join on inputs
     enablePagination: isNil(compareToRunUuid),
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
   });
 
   const {
@@ -266,6 +269,7 @@ const RunViewEvaluationsTabInner = ({
   const experimentIds = useMemo(() => [experimentId], [experimentId]);
 
   const countInfo = useCountInfo({
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
     experimentIds,
     runUuid,
     traceInfos,
@@ -276,12 +280,14 @@ const RunViewEvaluationsTabInner = ({
   });
 
   const assessmentCountMetrics = useAssessmentCountMetrics({
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
     experimentIds,
     runUuid,
     disabled: isQueryDisabled,
   });
 
   const compareAssessmentCountMetrics = useAssessmentCountMetrics({
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
     experimentIds,
     runUuid: compareToRunUuid,
     disabled: isQueryDisabled || isNil(compareToRunUuid),

@@ -1,3 +1,5 @@
+import { useIsTabActive } from '@mlflow/mlflow/src/common/hooks/useIsTabActive';
+import { RUNS_AUTO_REFRESH_INTERVAL } from '../../experiment-page/utils/experimentPage.fetch-utils';
 import { type ApolloError, type ApolloQueryResult, gql } from '@mlflow/mlflow/src/common/utils/graphQLHooks';
 import type { GetRun, GetRunVariables } from '../../../../graphql/__generated__/graphql';
 import { useQuery, useLazyQuery } from '@mlflow/mlflow/src/common/utils/graphQLHooks';
@@ -113,6 +115,7 @@ export const useGetRunQuery = ({
   runUuid: string;
   disabled?: boolean;
 }): UseGetRunQueryResponse => {
+  const isTabActive = useIsTabActive();
   const {
     data,
     loading,
@@ -125,6 +128,7 @@ export const useGetRunQuery = ({
       },
     },
     skip: disabled,
+    pollInterval: isTabActive ? RUNS_AUTO_REFRESH_INTERVAL : 0,
   });
 
   return {

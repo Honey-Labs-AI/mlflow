@@ -73,6 +73,7 @@ interface UseTraceMetricsQueryParams {
   dimensions?: string[];
   /** Optional: Whether the query is enabled. Defaults to true. */
   enabled?: boolean;
+  refetchInterval?: number | false;
 }
 
 export function useTraceMetricsQuery({
@@ -87,6 +88,7 @@ export function useTraceMetricsQuery({
   filters,
   dimensions,
   enabled = true,
+  refetchInterval,
 }: UseTraceMetricsQueryParams) {
   const useV4 = shouldUseTracesV4API();
   const sqlWarehouseContext = useSqlWarehouseContextSafe();
@@ -142,7 +144,8 @@ export function useTraceMetricsQuery({
       return queryTraceMetrics(queryParams);
     },
     enabled: queryEnabled,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchInterval,
   });
 
   return { ...result, isLoading: result.isLoading && queryEnabled };

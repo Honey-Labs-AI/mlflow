@@ -1,5 +1,6 @@
-import { describe, beforeEach, it, expect } from '@jest/globals';
-import { renderHook, waitFor } from '@testing-library/react';
+import { RUNS_AUTO_REFRESH_INTERVAL } from '../../experiment-page/utils/experimentPage.fetch-utils';
+import { describe, beforeEach, it, expect, jest } from '@jest/globals';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { graphql } from 'msw';
 import { useGetRunQuery } from './useGetRunQuery';
 import { setupServer } from '../../../../common/utils/setup-msw';
@@ -61,6 +62,52 @@ describe('useGetRunQuery', () => {
 
     expect(result.current.data?.info?.runName).toEqual('test-run-name');
     expect(result.current.data?.experiment?.name).toEqual('test-experiment-name');
+  });
+
+  it('refreshes numeric metrics through completion and pauses while hidden', async () => {
+    jest.useFakeTimers();
+    let requests = 0;
+    server.use(
+      graphql.query('GetRun', (req, res, ctx) => {
+        requests += 1;
+        return res(
+          ctx.data({
+            mlflowGetRun: {
+              apiError: null,
+              run: {
+                info: { runUuid: 'live-run', status: requests < 3 ? 'RUNNING' : 'FINISHED' },
+                data: { metrics: [{ key: 'cases_completed', value: requests, step: requests, timestamp: '1' }] },
+              },
+            },
+          }),
+        );
+      }),
+    );
+    const { result, unmount } = renderHook(() => useGetRunQuery({ runUuid: 'live-run' }), {
+      wrapper: ({ children }) => <TestApolloProvider disableCache>{children}</TestApolloProvider>,
+    });
+    try {
+      await waitFor(() => expect(result.current.data?.data?.metrics?.[0]?.value).toBe(1));
+      for (const count of [2, 3, 4]) {
+        await act(async () => {
+          jest.advanceTimersByTime(RUNS_AUTO_REFRESH_INTERVAL);
+        });
+        await waitFor(() => expect(result.current.data?.data?.metrics?.[0]?.value).toBe(count));
+      }
+      expect(result.current.data?.info?.status).toBe('FINISHED');
+      jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(RUNS_AUTO_REFRESH_INTERVAL * 2);
+      });
+      expect(requests).toBe(4);
+    } finally {
+      unmount();
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    }
   });
 
   it('returns an error corresponding to mocked failing response', async () => {

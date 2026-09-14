@@ -46,7 +46,7 @@ describe('useExperimentEvaluationRunsData', () => {
     );
   });
 
-  test('refreshes running metrics until the run finishes', async () => {
+  test('discovers new runs and refreshes metrics even after loaded runs finish', async () => {
     jest.useFakeTimers();
     let requests = 0;
     server.use(
@@ -56,7 +56,10 @@ describe('useExperimentEvaluationRunsData', () => {
           ctx.json({
             runs: [
               {
-                info: { run_uuid: 'active', status: requests < 3 ? 'RUNNING' : 'FINISHED' },
+                info: {
+                  run_uuid: requests === 1 ? 'old-finished' : 'new-run',
+                  status: requests === 2 ? 'RUNNING' : 'FINISHED',
+                },
                 data: { metrics: [{ key: 'completed', value: requests }] },
               },
             ],
@@ -71,16 +74,14 @@ describe('useExperimentEvaluationRunsData', () => {
     );
     try {
       await waitFor(() => expect(result.current.data).toHaveLength(1));
-      for (const count of [2, 3]) {
+      for (const count of [2, 3, 4]) {
         await act(async () => {
           jest.advanceTimersByTime(RUNS_AUTO_REFRESH_INTERVAL);
         });
         await waitFor(() => expect(result.current.data[0].data.metrics[0].value).toBe(count));
+        expect(result.current.data[0].info).toEqual(expect.objectContaining({ run_uuid: 'new-run' }));
       }
-      await act(async () => {
-        jest.advanceTimersByTime(RUNS_AUTO_REFRESH_INTERVAL * 2);
-      });
-      expect(requests).toBe(3);
+      expect(requests).toBe(4);
     } finally {
       unmount();
       client.clear();

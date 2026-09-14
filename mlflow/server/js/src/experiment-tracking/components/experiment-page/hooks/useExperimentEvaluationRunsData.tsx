@@ -31,11 +31,8 @@ export const useExperimentEvaluationRunsData = ({
       return MlflowService.searchRuns(requestBody);
     },
     cacheTime: 0,
-    refetchOnWindowFocus: false,
-    refetchInterval: (data) =>
-      data?.pages.some((page) => page.runs?.some((run) => ['RUNNING', 'SCHEDULED'].includes(run.info.status)))
-        ? RUNS_AUTO_REFRESH_INTERVAL
-        : false,
+    refetchOnWindowFocus: true,
+    refetchInterval: RUNS_AUTO_REFRESH_INTERVAL,
     retry: false,
     enabled,
     getNextPageParam: (lastPage) => lastPage.next_page_token,

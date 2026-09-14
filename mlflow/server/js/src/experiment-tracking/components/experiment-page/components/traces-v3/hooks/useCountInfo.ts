@@ -40,6 +40,7 @@ export function useCountInfo({
   traceInfosLoading,
   metadataTotalCount,
   disabled,
+  refetchInterval,
   countSessions = false,
 }: {
   experimentIds: string[];
@@ -51,6 +52,7 @@ export function useCountInfo({
   traceInfosLoading: boolean;
   metadataTotalCount: number;
   disabled: boolean;
+  refetchInterval?: number | false;
   countSessions?: boolean;
 }) {
   const usingInfinitePagination = shouldUseInfinitePaginatedTraces();
@@ -71,6 +73,7 @@ export function useCountInfo({
     endTimeMs,
     enabled: usingInfinitePagination && !disabled,
     filters,
+    refetchInterval,
   });
   const metricsTotal = countMetrics?.data_points?.[0]?.values?.[AggregationType.COUNT];
 

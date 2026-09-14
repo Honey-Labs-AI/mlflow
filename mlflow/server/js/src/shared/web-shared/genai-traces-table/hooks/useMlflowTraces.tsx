@@ -229,6 +229,7 @@ export const useMlflowTracesTableMetadata = ({
   filterByAssessmentSourceRun = false,
   showConsolidatedResultColumn = false,
   scorerDescriptionsByName,
+  refetchInterval,
 }: {
   locations: ModelTraceSearchLocation[];
   runUuid?: string;
@@ -267,6 +268,7 @@ export const useMlflowTracesTableMetadata = ({
    * Populate by parsing the serialized_scorer.description field from the listScorers API.
    */
   scorerDescriptionsByName?: Record<string, string>;
+  refetchInterval?: number | false;
 }) => {
   const intl = useIntl();
   const filter = createMlflowSearchFilter(runUuid, timeRange, networkFilters, filterByLoggedModelId);
@@ -285,6 +287,7 @@ export const useMlflowTracesTableMetadata = ({
     sqlWarehouseId,
     enabled: !disabled,
     orderBy,
+    refetchInterval,
   });
   const filteredTraces = useMemo(
     () => (filterByAssessmentSourceRun ? filterTracesByAssessmentSourceRunId(traces, runUuid) : traces),
@@ -303,6 +306,7 @@ export const useMlflowTracesTableMetadata = ({
     loggedModelId,
     sqlWarehouseId,
     orderBy,
+    refetchInterval,
   });
 
   const filteredOtherTraces = useMemo(

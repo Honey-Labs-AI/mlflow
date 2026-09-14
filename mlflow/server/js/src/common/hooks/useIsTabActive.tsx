@@ -7,9 +7,9 @@ import { useEffect, useState } from 'react';
 export const useIsTabActive = () => {
   const [isTabActive, setIsTabActive] = useState(document.visibilityState === 'visible');
   useEffect(() => {
-    document.addEventListener('visibilitychange', (x) => {
-      setIsTabActive(document.visibilityState === 'visible');
-    });
+    const updateVisibility = () => setIsTabActive(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => document.removeEventListener('visibilitychange', updateVisibility);
   }, []);
   return isTabActive;
 };
