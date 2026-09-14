@@ -1023,6 +1023,10 @@
     "defaultMessage": "Type prompt content here. Wrap variables with double curly brace e.g. '{{' name '}}'.",
     "description": "A placeholder for the prompt content in the prompt creation modal"
   },
+  "2K+lpg": {
+    "defaultMessage": "Invalid Git-managed judges catalog",
+    "description": "Error message when Git-managed judges catalog tag is malformed"
+  },
   "2K8tsp": {
     "defaultMessage": "10",
     "description": "Label for 10 first runs visible in run count selector within runs compare configuration modal"
@@ -2275,6 +2279,10 @@
     "defaultMessage": "Grid view",
     "description": "Aria label for grid view toggle"
   },
+  "7QETMB": {
+    "defaultMessage": "Git-managed",
+    "description": "Status tag for Git-managed judge"
+  },
   "7RNlsx": {
     "defaultMessage": "MLflow API documentation",
     "description": "Link to the MLflow API documentation for the Trace object"
@@ -3430,6 +3438,10 @@
   "Bnruyp": {
     "defaultMessage": "500",
     "description": "Label for 500 first runs visible in run count selector within runs compare configuration modal"
+  },
+  "BobmHg": {
+    "defaultMessage": "Toggle details for {judgeName}",
+    "description": "Accessibility label to expand or collapse details for Git-managed judge"
   },
   "Boj6Fm": {
     "defaultMessage": "Version {version}",
@@ -7651,6 +7663,10 @@
     "defaultMessage": "Hide raw server.json",
     "description": "Toggle to hide raw server.json"
   },
+  "TKi7ir": {
+    "defaultMessage": "Source code",
+    "description": "Header for Git-managed judge source code"
+  },
   "TKo/CQ": {
     "defaultMessage": "Metadata",
     "description": "Column selector label for the aggregate metadata column"
@@ -8939,6 +8955,10 @@
     "defaultMessage": "See less",
     "description": "Button to collapse a long text field in the trace explorer summary field renderer"
   },
+  "Y5gZPm": {
+    "defaultMessage": "Path:",
+    "description": "Label for Git judge source path"
+  },
   "Y5wVuI": {
     "defaultMessage": "Edit",
     "description": "MCP server detail edit server action"
@@ -10203,6 +10223,10 @@
     "defaultMessage": "Learn more about configuring judges",
     "description": "Link text for configuring judges documentation"
   },
+  "d5Fo5p": {
+    "defaultMessage": "The experiment tag mlflow.ui.judges.gitManaged contains invalid or malformed data: {error}. Native judges are preserved.",
+    "description": "Error description when Git-managed judges catalog tag is malformed"
+  },
   "d5gWbr": {
     "defaultMessage": "This view could not be applied. Try again in a moment.",
     "description": "Traces page > shared view > error toast when overriding before the view could be decoded"
@@ -10246,6 +10270,10 @@
   "dEGUt+": {
     "defaultMessage": "Use this button to automatically detect quality issues in your traces using AI. This feature helps you identify problems like correctness, latency, and other quality concerns in your agent.",
     "description": "Detect issues guidance popover message"
+  },
+  "dEwwW+": {
+    "defaultMessage": "Supported expectation schema",
+    "description": "Header for Git-managed judge supported expectation schema"
   },
   "dFSJ49": {
     "defaultMessage": "View raw tools JSON",
@@ -14634,6 +14662,10 @@
   "uFM4rv": {
     "defaultMessage": "Digest",
     "description": "Label for the digest field in the V2 evaluation dataset metadata modal"
+  },
+  "uG744Y": {
+    "defaultMessage": "Hash:",
+    "description": "Label for Git judge source SHA256"
   },
   "uGfscW": {
     "defaultMessage": "The SQL query timed out. Please retry, and if the problem persists, try selecting a larger SQL warehouse.",

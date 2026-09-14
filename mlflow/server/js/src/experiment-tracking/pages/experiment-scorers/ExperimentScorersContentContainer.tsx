@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   useDesignSystemTheme,
   ParagraphSkeleton,
@@ -8,13 +8,17 @@ import {
   SplitButton,
   DropdownMenu,
   CursorPagination,
+  Alert,
 } from '@databricks/design-system';
 import { FormattedMessage, useIntl } from '@databricks/i18n';
 import ScorerCardContainer from './ScorerCardContainer';
 import ScorerModalRenderer from './ScorerModalRenderer';
 import ScorerEmptyStateRenderer from './ScorerEmptyStateRenderer';
+import { GitManagedScorerCard } from './GitManagedScorerCard';
 import { shouldPaginateScorers } from '../../../common/utils/FeatureUtils';
 import { useGetScheduledScorers } from './hooks/useGetScheduledScorers';
+import { useGetExperimentQuery } from '../../hooks/useExperimentQuery';
+import { parseGitManagedJudgesTag, GIT_MANAGED_JUDGES_TAG } from './gitManagedJudgesUtils';
 import { SCORER_FORM_MODE } from './constants';
 import type { ScorerFormData } from './utils/scorerTransformUtils';
 
@@ -29,7 +33,16 @@ const ExperimentScorersContentContainer: React.FC<ExperimentScorersContentContai
   const [initialScorerType, setInitialScorerType] = useState<ScorerFormData['scorerType']>('llm');
   const scheduledScorersResult = useGetScheduledScorers(experimentId);
   const scorers = scheduledScorersResult.data?.scheduledScorers || [];
-  const isLoading = scheduledScorersResult.isLoading;
+  const { data: experiment, loading: isExperimentLoading } = useGetExperimentQuery({ experimentId });
+
+  const gitManagedJudgesTag = experiment?.tags?.find((tag) => tag.key === GIT_MANAGED_JUDGES_TAG)?.value;
+
+  const { judges: gitJudges, error: catalogError } = useMemo(
+    () => parseGitManagedJudgesTag(gitManagedJudgesTag, experiment?.tags),
+    [gitManagedJudgesTag, experiment?.tags],
+  );
+
+  const isLoading = scheduledScorersResult.isLoading || isExperimentLoading;
   const isError = scheduledScorersResult.isError;
   const error = scheduledScorersResult.error;
 
@@ -43,8 +56,9 @@ const ExperimentScorersContentContainer: React.FC<ExperimentScorersContentContai
     setIsModalVisible(true);
   };
 
-  // If no scorers exist and we're not currently showing the modal, show empty state
-  const shouldShowEmptyState = scorers.length === 0 && !isModalVisible && !isLoading;
+  // If no native or git-managed scorers exist and no catalog error and we're not currently showing the modal, show empty state
+  const hasAnyJudges = scorers.length > 0 || gitJudges.length > 0;
+  const shouldShowEmptyState = !hasAnyJudges && !catalogError && !isModalVisible && !isLoading;
 
   const closeModal = () => {
     setIsModalVisible(false);
@@ -134,6 +148,30 @@ const ExperimentScorersContentContainer: React.FC<ExperimentScorersContentContai
         </SplitButton>
       </div>
       <Spacer size="sm" />
+      {/* Malformed Git-managed catalog alert */}
+      {catalogError && (
+        <div css={{ padding: `${theme.spacing.xs}px ${theme.spacing.sm}px`, marginBottom: theme.spacing.sm }}>
+          <Alert
+            componentId="mlflow.experiment-scorers.invalid-git-catalog-alert"
+            data-testid="invalid-git-catalog-alert"
+            type="error"
+            message={
+              <FormattedMessage
+                defaultMessage="Invalid Git-managed judges catalog"
+                description="Error message when Git-managed judges catalog tag is malformed"
+              />
+            }
+            description={
+              <FormattedMessage
+                defaultMessage="The experiment tag mlflow.ui.judges.gitManaged contains invalid or malformed data: {error}. Native judges are preserved."
+                description="Error description when Git-managed judges catalog tag is malformed"
+                values={{ error: catalogError }}
+              />
+            }
+            closable={false}
+          />
+        </div>
+      )}
       {/* Content area */}
       <div
         css={{
@@ -151,6 +189,9 @@ const ExperimentScorersContentContainer: React.FC<ExperimentScorersContentContai
         >
           {scorers.map((scorer) => (
             <ScorerCardContainer key={scorer.name} scorer={scorer} experimentId={experimentId} />
+          ))}
+          {gitJudges.map((judge) => (
+            <GitManagedScorerCard key={`git-${judge.name}`} judge={judge} />
           ))}
         </div>
       </div>

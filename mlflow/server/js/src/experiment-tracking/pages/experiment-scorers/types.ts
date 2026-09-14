@@ -208,3 +208,30 @@ export interface EvaluateChatAssessmentsParams extends EvaluateChatParamsBase {
 export type EvaluateTracesParams = (EvaluateChatCompletionsParams | EvaluateChatAssessmentsParams) & {
   saveAssessment?: boolean;
 };
+
+export interface GitManagedJudgeManifestEntry {
+  name: string;
+  description: string;
+  kind: string;
+  source_path: string;
+  source_sha256: string;
+  source_tag: string;
+  expectations_schema_tag?: string;
+}
+
+export interface GitManagedJudgesCatalog {
+  version: number;
+  judges: GitManagedJudgeManifestEntry[];
+}
+
+export interface GitManagedJudge {
+  name: string;
+  description: string;
+  kind: string;
+  source: string;
+  source_path: string;
+  source_sha256: string;
+  source_tag?: string;
+  expectations_schema_tag?: string;
+  expectations_schema?: Record<string, unknown>;
+}
