@@ -519,6 +519,49 @@ def test_trace_to_and_from_proto():
     assert trace_from_proto.to_dict() == trace.to_dict()
 
 
+def test_trace_batch_response_preserves_deep_attributes():
+    from google.protobuf.json_format import MessageToDict, ParseDict
+
+    from mlflow.protos.service_pb2 import BatchGetTraces
+
+    nested_schema = {"type": "string", "enum": ["שלום", "value"]}
+    for _ in range(40):
+        nested_schema = {"properties": {"child": nested_schema}}
+    attributes = {
+        "llm.invocation_parameters": {"tools": [nested_schema]},
+        "json_string": '{"literal": true}',
+        "number_string": "42",
+        "number": 42,
+        "enabled": True,
+        "empty": None,
+        "list": [1, "two", {"three": 3}],
+    }
+    with mlflow.start_span(name="deep_schema", attributes=attributes):
+        pass
+    trace = mlflow.get_trace(mlflow.get_last_active_trace_id())
+
+    response = BatchGetTraces.Response()
+    response.traces.extend([trace.to_proto()])
+    response = BatchGetTraces.Response.FromString(response.SerializeToString())
+    response = ParseDict(MessageToDict(response), BatchGetTraces.Response())
+
+    restored = Trace.from_proto(response.traces[0])
+    assert restored.to_dict() == trace.to_dict()
+
+
+def test_trace_from_proto_preserves_native_otel_attributes():
+    from mlflow.protos.service_pb2 import Trace as ProtoTrace
+
+    with mlflow.start_span(name="native", attributes={"count": 2, "nested": {"value": True}}):
+        pass
+    trace = mlflow.get_trace(mlflow.get_last_active_trace_id())
+    proto = ProtoTrace(
+        trace_info=trace.info.to_proto(),
+        spans=[span.to_otel_proto() for span in trace.data.spans],
+    )
+    assert Trace.from_proto(proto).to_dict() == trace.to_dict()
+
+
 def test_trace_from_dict_load_old_trace():
     trace_dict = {
         "info": {

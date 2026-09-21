@@ -462,6 +462,7 @@ class Span:
         *,
         preserve_request_id: bool = False,
         resource: OTelProtoResource | None = None,
+        attributes_are_serialized: bool = False,
     ) -> "Span":
         """
         Create a Span from an OpenTelemetry protobuf span.
@@ -471,6 +472,7 @@ class Span:
         ingest does not trust a client-sent request ID. Set ``preserve_request_id=True`` only for
         trusted internal round-trip flows, such as archived trace payload deserialization, where
         the stored MLflow request ID must be preserved exactly if present.
+        ``attributes_are_serialized`` reads the JSON strings used by MLflow Trace responses.
         """
         # Validate required fields - empty bytes indicate missing trace_id or span_id
         if not otel_proto_span.trace_id:
@@ -493,7 +495,11 @@ class Span:
             status_code = OTelStatusCode.UNSET
 
         serialized_attributes = {
-            attr.key: dump_span_attribute_value(_decode_otel_proto_anyvalue(attr.value))
+            attr.key: (
+                attr.value.string_value
+                if attributes_are_serialized
+                else dump_span_attribute_value(_decode_otel_proto_anyvalue(attr.value))
+            )
             for attr in otel_proto_span.attributes
         }
         mlflow_trace_id = (
@@ -561,10 +567,11 @@ class Span:
         span._links = links
         return span
 
-    def to_otel_proto(self) -> OTelProtoSpan:
+    def to_otel_proto(self, *, serialize_attributes: bool = False) -> OTelProtoSpan:
         """
         Convert to OpenTelemetry protobuf span format for OTLP export.
         This is an internal method used by the REST store for logging spans.
+        ``serialize_attributes`` keeps MLflow Trace responses below protobuf's depth limit.
 
         Returns:
             An OpenTelemetry protobuf Span message.
@@ -586,7 +593,9 @@ class Span:
         for key, value in self.attributes.items():
             attr = otel_span.attributes.add()
             attr.key = key
-            _set_otel_proto_anyvalue(attr.value, value)
+            _set_otel_proto_anyvalue(
+                attr.value, dump_span_attribute_value(value) if serialize_attributes else value
+            )
 
         for event in self.events:
             otel_event = event.to_otel_proto()

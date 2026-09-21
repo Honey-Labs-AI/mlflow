@@ -27,3 +27,9 @@ The inherited **Push-Images** and **Update Release Labels** workflows are disabl
 For an upstream upgrade, create a branch from the new upstream release tag and reapply only fixes that remain necessary. Repeat the validation and release process above, updating the workflow branch and version. Fixes accepted upstream can be dropped from this fork.
 
 The existing `dev/build.py --package-type dev --sha <full-sha>` assembles the wheel after `yarn build`; "dev" selects self-contained packaging. Installing directly from Git does not compile the UI. Use the released wheel for HoneyLabs installations.
+
+Trace API responses encode span attributes as JSON strings to avoid protobuf recursion limits
+on nested tool schemas. A transport-only `mlflow.trace.spanAttributeEncoding=json` metadata
+entry tells the matching client to restore their original types; the client still reads native
+OTLP attributes from older servers. Stored traces and OTLP ingestion keep their existing formats.
+Upgrade the server and clients together when adopting this wheel.
