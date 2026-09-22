@@ -17,6 +17,7 @@ import flask
 import pandas as pd
 import pytest
 import requests
+from google.protobuf.json_format import ParseDict
 from opentelemetry.sdk.trace import ReadableSpan as OTelReadableSpan
 
 import mlflow.experiments
@@ -44,6 +45,7 @@ from mlflow.entities import (
     Span,
     SpanEvent,
     SpanStatusCode,
+    Trace,
     ViewType,
 )
 from mlflow.entities.logged_model_input import LoggedModelInput
@@ -75,6 +77,7 @@ from mlflow.genai.datasets import (
 )
 from mlflow.models import Model
 from mlflow.protos.databricks_pb2 import RESOURCE_DOES_NOT_EXIST, ErrorCode
+from mlflow.protos.service_pb2 import Trace as ProtoTrace
 from mlflow.server import handlers
 from mlflow.server.fastapi_app import app
 from mlflow.server.handlers import initialize_backend_stores
@@ -3007,8 +3010,13 @@ def test_get_trace_handler(mlflow_client, allow_partial: bool, store_type):
     assert trace["trace_info"]["trace_id"] == span.trace_id
     assert len(trace["spans"]) == 1
     assert trace["spans"][0]["name"] == "test"
+    assert trace["trace_info"]["trace_metadata"]["mlflow.trace.spanAttributeEncoding"] == "json"
     attributes = trace["spans"][0]["attributes"]
-    assert {"key": "fruit", "value": {"string_value": "apple"}} in attributes
+    assert {"key": "fruit", "value": {"string_value": '"apple"'}} in attributes
+
+    decoded_trace = Trace.from_proto(ParseDict(trace, ProtoTrace()))
+    assert decoded_trace.data.spans[0].attributes["fruit"] == "apple"
+    assert "mlflow.trace.spanAttributeEncoding" not in decoded_trace.info.trace_metadata
 
 
 def test_get_trace_artifact_handler(mlflow_client):

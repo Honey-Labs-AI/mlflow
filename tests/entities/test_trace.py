@@ -24,7 +24,7 @@ from mlflow.entities.assessment import Expectation
 from mlflow.entities.trace_state import TraceState
 from mlflow.environment_variables import MLFLOW_TRACKING_USERNAME
 from mlflow.exceptions import MlflowException
-from mlflow.tracing.constant import TRACE_SCHEMA_VERSION_KEY
+from mlflow.tracing.constant import TRACE_SCHEMA_VERSION_KEY, TraceMetadataKey
 from mlflow.tracing.utils import TraceJSONEncoder
 from mlflow.utils.mlflow_tags import MLFLOW_ARTIFACT_LOCATION
 from mlflow.utils.proto_json_utils import (
@@ -625,3 +625,16 @@ def test_trace_from_dict_load_old_trace():
     assert trace.data.spans[0].outputs == "def"
     assert trace.data.spans[0].start_time_ns == 1761106494524157000
     assert trace.data.spans[0].end_time_ns == 1761106494584860000
+
+
+def test_trace_from_proto_reads_marker_without_mutating_proto():
+    with mlflow.start_span(name="marker_test", attributes={"test_key": [1, 2, {"a": "b"}]}):
+        pass
+    trace = mlflow.get_trace(mlflow.get_last_active_trace_id())
+    proto = trace.to_proto()
+
+    restored = Trace.from_proto(proto)
+
+    assert TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING not in restored.info.trace_metadata
+    assert restored.data.spans[0].attributes["test_key"] == [1, 2, {"a": "b"}]
+    assert proto.trace_info.trace_metadata[TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING] == "json"

@@ -31,5 +31,7 @@ The existing `dev/build.py --package-type dev --sha <full-sha>` assembles the wh
 Trace API responses encode span attributes as JSON strings to avoid protobuf recursion limits
 on nested tool schemas. A transport-only `mlflow.trace.spanAttributeEncoding=json` metadata
 entry tells the matching client to restore their original types; the client still reads native
-OTLP attributes from older servers. Stored traces and OTLP ingestion keep their existing formats.
-Upgrade the server and clients together when adopting this wheel.
+OTLP attributes from older servers. Transport metadata is stripped at the canonical `TraceInfo.from_proto`
+decode boundary so client-side model metadata and `get_trace_info` queries never leak transport markers.
+Stored traces and OTLP ingestion keep their existing formats. Upgrade the server and clients together
+when adopting this wheel.

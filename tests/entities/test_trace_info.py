@@ -13,7 +13,7 @@ from mlflow.entities.trace_info import TraceInfo
 from mlflow.entities.trace_location import TraceLocation
 from mlflow.entities.trace_state import TraceState
 from mlflow.protos.service_pb2 import TraceInfoV3 as ProtoTraceInfoV3
-from mlflow.tracing.constant import TRACE_SCHEMA_VERSION, TRACE_SCHEMA_VERSION_KEY
+from mlflow.tracing.constant import TRACE_SCHEMA_VERSION, TRACE_SCHEMA_VERSION_KEY, TraceMetadataKey
 
 
 def test_trace_info():
@@ -364,3 +364,21 @@ def test_trace_info_to_dict_preserves_trace_id():
     dict_regular = trace_info.to_dict()
     # Regular trace_id should remain unchanged
     assert dict_regular["trace_id"] == "tr-12345"
+
+
+def test_trace_info_from_proto_strips_transport_metadata_and_leaves_proto_unchanged():
+    now = Timestamp()
+    now.GetCurrentTime()
+    proto = ProtoTraceInfoV3(
+        trace_id="tr-test-strip",
+        request_time=now,
+        trace_metadata={
+            TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING: "json",
+            "user_key": "user_value",
+        },
+    )
+    info = TraceInfo.from_proto(proto)
+
+    assert TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING not in info.trace_metadata
+    assert info.trace_metadata == {"user_key": "user_value"}
+    assert proto.trace_metadata[TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING] == "json"

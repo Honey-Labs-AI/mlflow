@@ -35,6 +35,7 @@ class TraceMetadataKey:
     # Store the user ID/name from authentication
     AUTH_USER_ID = "mlflow.auth.userId"
     AUTH_USERNAME = "mlflow.auth.username"
+    SPAN_ATTRIBUTE_ENCODING = "mlflow.trace.spanAttributeEncoding"
 
 
 class TraceTagKey:

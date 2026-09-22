@@ -15,12 +15,12 @@ from mlflow.environment_variables import MLFLOW_TRACING_SQL_WAREHOUSE_ID
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
 from mlflow.protos.service_pb2 import Trace as ProtoTrace
+from mlflow.tracing.constant import TraceMetadataKey
 
 if TYPE_CHECKING:
     from mlflow.entities.assessment import Assessment
 
 _logger = logging.getLogger(__name__)
-_SPAN_ATTRIBUTE_ENCODING_KEY = "mlflow.trace.spanAttributeEncoding"
 
 
 @dataclass
@@ -321,7 +321,7 @@ class Trace(_MlflowObject):
         trace_info = self.info.to_proto()
         # Nested attributes can exceed protobuf's depth limit after AnyValue expansion.
         # This transport marker leaves stored metadata and native OTLP encoding unchanged.
-        trace_info.trace_metadata[_SPAN_ATTRIBUTE_ENCODING_KEY] = "json"
+        trace_info.trace_metadata[TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING] = "json"
         return ProtoTrace(
             trace_info=trace_info,
             spans=[span.to_otel_proto(serialize_attributes=True) for span in self.data.spans],
@@ -329,10 +329,11 @@ class Trace(_MlflowObject):
 
     @classmethod
     def from_proto(cls, proto: ProtoTrace) -> "Trace":
-        info = TraceInfo.from_proto(proto.trace_info)
-        serialized = info.trace_metadata.pop(_SPAN_ATTRIBUTE_ENCODING_KEY, None) == "json"
+        serialized = (
+            proto.trace_info.trace_metadata.get(TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING) == "json"
+        )
         return cls(
-            info=info,
+            info=TraceInfo.from_proto(proto.trace_info),
             data=TraceData(
                 spans=[
                     Span.from_otel_proto(span, attributes_are_serialized=serialized)

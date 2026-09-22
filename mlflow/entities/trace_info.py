@@ -159,7 +159,11 @@ class TraceInfo(_MlflowObject):
                 else None
             ),
             state=TraceState.from_proto(proto.state),
-            trace_metadata=dict(proto.trace_metadata),
+            trace_metadata={
+                k: v
+                for k, v in proto.trace_metadata.items()
+                if k != TraceMetadataKey.SPAN_ATTRIBUTE_ENCODING
+            },
             tags=dict(proto.tags),
             assessments=[Assessment.from_proto(a) for a in proto.assessments],
         )
